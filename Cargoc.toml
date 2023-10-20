@@ -1,0 +1,11 @@
+[package]
+name = sapphire
+typ = "dynlib"
+gen_config = true
+
+[lib]
+header = ["include/"]
+
+[compiler]
+
+[linker]
