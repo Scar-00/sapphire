@@ -2,7 +2,7 @@
 #include "../internal.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "../util/stb_image.h"
 
 void sp_texture_load_pixels(const char* path, u8 **pixels_out, size_t *width_out, size_t *height_out);
 

@@ -1,11 +1,19 @@
 [package]
-name = sapphire
+name = "sapphire"
 typ = "dynlib"
 gen_config = true
+src = ["src/gfx", "src/util"]
 
 [lib]
 header = ["include/"]
 
 [compiler]
+flags = ["-fPIC"]
+includes = ["include/", "../cglm/include/", "/usr/include/freetype2", "-ggdb"]
 
 [linker]
+flags = ["-lfreetype", "-lglfw"]
+
+[dependencies]
+core = { path = "../core/", leaky = true }
+glad = { path = "../glad/" }

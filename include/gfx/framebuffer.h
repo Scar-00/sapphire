@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_FRAMEBUFFER_H_
 #define _SAPPHIRE_FRAMEBUFFER_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 
 #include <stdbool.h>
 

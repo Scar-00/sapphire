@@ -8,7 +8,7 @@
 #include "cglm/struct/vec3.h"
 #include "cglm/types-struct.h"
 #include "cglm/types.h"
-#include "core.h"
+#include "sp_core.h"
 #include "gfx/window.h"
 #include "util/math.h"
 #include <assert.h>

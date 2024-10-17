@@ -4,17 +4,24 @@
 #include <stdlib.h>
 
 SAPPHIRE_API SPFont *sp_font_init_from_file(const char *path, size_t size) {
+    if(!file_exists(string_view_from(path))) {
+        sp_info("Failed to load font: file `%s` does not exist", path);
+        return NULL;
+    }
+
     struct SPFont self = {
-        .chars = gaia_array_create(struct SPChar, 96),
+        .chars = vec_with_size(struct SPChar, 96),
     };
 
     FT_Library ft;
-    if(FT_Init_FreeType(&ft))
-        sp_panic(SP_ERROR_FONT, "Could not init freetype");
+    if(FT_Init_FreeType(&ft)) {
+        sp_panic(SP_ERROR_FONT, "Could not init freetype", "");
+    }
 
-    FT_Face face;
-    if(FT_New_Face(ft, path, 0, &face))
+    FT_Face face = NULL;
+    if(FT_New_Face(ft, path, 0, &face)) {
         sp_panic(SP_ERROR_FONT, "Could not load font [%s]", path);
+    }
 
     FT_Set_Pixel_Sizes(face, 0, size);
 
@@ -35,7 +42,7 @@ SAPPHIRE_API SPFont *sp_font_init_from_file(const char *path, size_t size) {
         int mode = FT_RENDER_MODE_NORMAL;
         //int mode = FT_RENDER_MODE_SDF;
         if(FT_Render_Glyph(face->glyph, mode)) {
-            sp_panic(SP_ERROR_FONT, "");
+            sp_panic(SP_ERROR_FONT, "", "");
         }
 
         FT_Bitmap *bmp = &face->glyph->bitmap;
@@ -59,7 +66,7 @@ SAPPHIRE_API SPFont *sp_font_init_from_file(const char *path, size_t size) {
             .uv_max = {{(pen.x + bmp->width) / (f32)tex_size.y, (pen.y + bmp->rows) / (f32)tex_size.y}},
             .advance = face->glyph->advance.x,
         };
-        gaia_array_pushback(self.chars, character);
+        vec_push(self.chars, character);
         pen.x += bmp->width + 1;
     }
 
@@ -78,5 +85,5 @@ SAPPHIRE_API void *sp_font_atlas_get(SPFont *font) {
 }
 
 SAPPHIRE_API u32 sp_font_size_get(SPFont *font) {
-    return 0;
+    return font->size.x;
 }

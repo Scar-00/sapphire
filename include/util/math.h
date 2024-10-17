@@ -5,13 +5,24 @@
 #include <stdbool.h>
 #include "../gfx/camera.h"
 
-/*#define clamp(x, mn, mx) ({\
+#define clamp(x, mn, mx) ({\
     __typeof__ (x) _x = (x); \
     __typeof__ (mn) _mn = (mn); \
     __typeof__ (mx) _mx = (mx); \
     max(_mn, min(_mx, _x)); })
-*/
-#define clamp(x, mn, mx) (max(mn, min(mx, x)))
+
+
+#define max(a, b) ({\
+    __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define min(a, b) ({\
+    __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a < _b ? _a : _b; })
+
+//#define clamp(x, mn, mx) (max(mn, min(mx, x)))
 
 typedef union SPPos {
     f32 raw[3];

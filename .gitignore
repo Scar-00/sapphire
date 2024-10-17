@@ -2,3 +2,7 @@ lib
 compile_commands.json
 *.json
 *.idx
+*.o
+*.dll
+*.lib
+*.pdb

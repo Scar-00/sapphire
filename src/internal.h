@@ -1,14 +1,12 @@
 #ifndef _SAPPHIRE_INTERNAL_H_
 #define _SAPPHIRE_INTERNAL_H_
 
-#include "gfx/camera.h"
-#include <stb_truetype.h>
 #include <stdlib.h>
-#define GAIA_SHORT_NAMING
-#ifdef SP_DEBUG
-#define GAIA_MEM_DEBUG
-#endif
-#include <Gaia/gaia.h>
+#include <string.h>
+
+#include <sp_core.h>
+#include <util/os.h>
+#define CORE_SHORT
 #include <core.h>
 
 // constants
@@ -33,14 +31,20 @@
 
 #include <util/math.h>
 
-typedef s32 ivec2[2];
+#define FLAG_SET(f, v) ((f) |= (v))
+#define FLAG_CLEAR(f, v) ((f) &= ~(v))
+#define FLAG_CHECK(f, v) ((f & v) == (v))
+#define FLAG_FLIP(f, v) ((f) ^= (v))
+#define FLAS_SET_BOOL(f, b, v) ((f) |= b ? (v) : 0)
+
+/*typedef s32 ivec2[2];
 typedef union ivec2s {
   ivec2 raw;
   struct {
     int x;
     int y;
   };
-}ivec2s;
+}ivec2s;*/
 
 typedef enum SPError {
     SP_ERROR_UNKNOWN,
@@ -53,7 +57,7 @@ typedef enum SPError {
 
 // Logging
 const char *sp_error_to_string(SPError err);
-#define sp_panic(err, message, ...) sp_panic_expl(err, __LINE__, __FILE__, message, __VA_ARGS__)
+#define sp_panic(err, message, ...) sp_panic_expl((err), __LINE__, __FILE__, (message), __VA_ARGS__)
 void sp_panic_expl(SPError err, u32 line, const char *file, const char *message, ...);
 void sp_warn(const char *message, ...);
 void sp_info(const char *message, ...);
@@ -88,11 +92,12 @@ struct SPTexture {
 
 void sp_texture_bind(SPTexture self);
 
+#include <gfx/renderer.h>
 // render pipeline
 typedef struct RenderPipeline {
     u64 id;
-    array(f32) vertecies;
-    array(s32) indicies;
+    Vec(f32) vertecies;
+    Vec(s32) indicies;
 }RenderPipeline;
 
 // Render pass
@@ -122,12 +127,12 @@ typedef struct SPShader {
     GLuint handle;
     GLuint vs_handle;
     GLuint fs_handle;
-    array(struct SPShaderField) fields;
+    Vec(struct SPShaderField) fields;
 }SPShader;
 
 SPShader sp_shader_create_int(const char *vs_path, const char *fs_path, size_t layout_size, struct SPShaderField layout[]);
 #define sp_shader_create(vs_path, fs_path, layout) sp_shader_create_int(vs_path, fs_path, SP_ARRSIZE(layout), layout)
-SPShader sp_shader_create_src_int(const char *vs_src, const char *fs_src, size_t layout_size, struct SPShaderField layout[]);
+SPShader sp_shader_create_src_int(StringView vs_src, StringView fs_src, size_t layout_size, struct SPShaderField layout[]);
 #define sp_shader_create_src(vs_src, fs_src, layout) sp_shader_create_src_int(vs_src, fs_src, SP_ARRSIZE(layout), layout)
 void sp_shader_bind(SPShader self);
 void sp_shader_uniform_float(SPShader self, char *name, float f);
@@ -150,7 +155,6 @@ s32 sp_hash_str(const char *str);
 u64 sp_time_now(void);
 
 //io
-char *sp_file_read(const char *path);
 
 //fonts
 #include <util/font.h>

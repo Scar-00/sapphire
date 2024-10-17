@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_TEXTURE_H_
 #define _SAPPHIRE_TEXTURE_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 
 typedef struct SPTexture SPTexture;
 

@@ -1,14 +1,7 @@
-#include <float.h>
-#include <gfx/renderer.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <vadefs.h>
 #include "../internal.h"
-#include "Gaia/names.h"
-#include "cglm/struct/vec2.h"
-#include "core.h"
-#include "gfx/camera.h"
+
+#include <float.h>
+#include <stdarg.h>
 
 #define RENDERER_MAX_VERTECIES 1000 * 40
 #define RENDERER_MAX_INDICIES 1000 * 6
@@ -24,15 +17,15 @@ typedef struct SPRenderer {
     SPVBO ibo;
     SPShader shader;
     struct SPRendereringData {
-        f32 *vertex_buffer;
-        u32 *index_buffer;
+        Vec(f32) vertex_buffer;
+        Vec(u32) index_buffer;
         SPTexture textures[32];
         u32 texture_count;
         u64 offset;
     }renderering_data;
     SPCamera *camera_current;
     vec4s clear_color;
-    SPFont **fonts;
+    Vec(SPFont *) fonts;
     RendererInfo info;
 }SPRenderer;
 
@@ -41,7 +34,7 @@ SPRenderer *renderer = NULL;
 SAPPHIRE_API void sp_renderer_init(void) {
     renderer = malloc(sizeof(*renderer));
     if(renderer == NULL)
-        sp_panic(SP_ERROR_SP, "failed to create renderer");
+        sp_panic(SP_ERROR_SP, "failed to create renderer", "");
 
     *renderer = (SPRenderer){
         .vao = sp_vao_create(),
@@ -55,14 +48,15 @@ SAPPHIRE_API void sp_renderer_init(void) {
             {SP_SHADER_TYPE_FLOAT1, "kind"},
         })),
         .renderering_data = {
-            .vertex_buffer = array_create(f32, 120),
-            .index_buffer = array_create(u32, 120),
+            .vertex_buffer = vec_with_size(f32, 1),
+            .index_buffer = vec_with_size(u32, 1),
         },
         .camera_current = NULL,
         .clear_color = {{1, 1, 1, 1}},
-        .fonts = gaia_array_create(struct SPFont *, 2),
+        .fonts = vec_with_size(struct SPFont *, 2),
+        .info = {0},
     };
-    SPFont *font = sp_font_init_from_file("C:\\dev\\c\\engine\\Sapphire\\res\\consola.ttf", 16);
+    SPFont *font = sp_font_init_from_file("/usr/share/fonts/TTF/JetBrainsMono-Regular.ttf", 16);
     sp_font_push(font);
 }
 
@@ -70,9 +64,9 @@ SAPPHIRE_API void sp_renderer_shutdown(void) {
     sp_vao_destroy(renderer->vao);
     sp_vbo_destroy(renderer->vbo);
     sp_vbo_destroy(renderer->ibo);
-    array_destroy(renderer->renderering_data.vertex_buffer);
-    array_destroy(renderer->renderering_data.index_buffer);
-    array_destroy(renderer->fonts);
+    vec_destroy(renderer->renderering_data.vertex_buffer);
+    vec_destroy(renderer->renderering_data.index_buffer);
+    vec_destroy(renderer->fonts);
     free(renderer);
     renderer = NULL;
 }
@@ -82,7 +76,6 @@ SAPPHIRE_API void sp_renderer_camera_set(SPCamera *camera) {
 }
 
 SAPPHIRE_API void sp_batch_begin(void) {
-    //sp_renderer_data_clear();
     sp_render_prep();
 }
 
@@ -136,35 +129,30 @@ static vec2s CUBE_UV_CORDS[] = {
     };
 
 
-#define PUSH_CUBE_INDICIES() {for(u32 idx = 0; idx < 36; idx++) {\
-        gaia_array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + CUBE_INDICIES[idx]);\
-    }}
-
 void sp_render_quad_int(mat4s transform, SPTexture *tex, u32 color_hex) {
     f32 tex_index = sp_item_check_texture(tex);
     vec4s color = sp_hex_to_vec4(color_hex);
 
     for(u32 i = 0; i < 4; i++) {
-        //vec4s pos = glms_mat4_mulv(transform, QUAD_VERTEX_POS[i]);
         vec3s pos = glms_mat4_mulv3(transform, (vec3s){{QUAD_VERTEX_POS[i].x, QUAD_VERTEX_POS[i].y, QUAD_VERTEX_POS[i].z}}, QUAD_VERTEX_POS[i].w);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.z);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, QUAD_UV_CORDS[i].x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, QUAD_UV_CORDS[i].y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, tex_index);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.z);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.w);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, 0);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.x);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.y);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.z);
+        vec_push(renderer->renderering_data.vertex_buffer, QUAD_UV_CORDS[i].x);
+        vec_push(renderer->renderering_data.vertex_buffer, QUAD_UV_CORDS[i].y);
+        vec_push(renderer->renderering_data.vertex_buffer, tex_index);
+        vec_push(renderer->renderering_data.vertex_buffer, color.x);
+        vec_push(renderer->renderering_data.vertex_buffer, color.y);
+        vec_push(renderer->renderering_data.vertex_buffer, color.z);
+        vec_push(renderer->renderering_data.vertex_buffer, color.w);
+        vec_push(renderer->renderering_data.vertex_buffer, 0);
     };
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 1);
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 3);
-    array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 1);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 3);
+    vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
     renderer->renderering_data.offset += 4;
 }
 
@@ -184,20 +172,20 @@ SAPPHIRE_API void sp_render_quad_rotated(f32 x, f32 y, f32 width, f32 height, f3
 }
 
 SAPPHIRE_API void sp_render_text(f32 x, f32 y, const char *format, ...) {
-    struct SPFont *font = renderer->fonts[gaia_array_length(renderer->fonts) - 1];
+    va_list args;
+    struct SPFont *font = renderer->fonts[vec_len(renderer->fonts) - 1];
     struct SPTexture *texture = font->texture;
 
-    va_list args;
     va_start(args, format);
-    String text = gaia_string_init_va(format, args);
+    String text = string_vformat(format, args);
     va_end(args);
 
     f32 tex_index = sp_item_check_texture(texture);
 
     vec2s pos = {{x, y}};
 
-    for(size_t j = 0; j < text.length; j++) {
-        u32 index = text.c_str[j] - 32;
+    for(size_t j = 0; j < string_len(&text); j++) {
+        u32 index = string_cstr(&text)[j] - 32;
 
         if(index == '\n')
             continue;
@@ -223,28 +211,29 @@ SAPPHIRE_API void sp_render_text(f32 x, f32 y, const char *format, ...) {
         );
         for(u32 i = 0; i < 4; i++) {
             vec3s pos = glms_mat4_mulv3(transform, (vec3s){{QUAD_VERTEX_POS[i].x, QUAD_VERTEX_POS[i].y, QUAD_VERTEX_POS[i].z}}, QUAD_VERTEX_POS[i].w);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.x);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.y);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.z);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, uv_cords[i].x);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, uv_cords[i].y);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, tex_index);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, 1);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, 1);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, 1);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, 1);
-            gaia_array_pushback(renderer->renderering_data.vertex_buffer, 1);
+            vec_push(renderer->renderering_data.vertex_buffer, pos.x);
+            vec_push(renderer->renderering_data.vertex_buffer, pos.y);
+            vec_push(renderer->renderering_data.vertex_buffer, pos.z);
+            vec_push(renderer->renderering_data.vertex_buffer, uv_cords[i].x);
+            vec_push(renderer->renderering_data.vertex_buffer, uv_cords[i].y);
+            vec_push(renderer->renderering_data.vertex_buffer, tex_index);
+            vec_push(renderer->renderering_data.vertex_buffer, 1);
+            vec_push(renderer->renderering_data.vertex_buffer, 1);
+            vec_push(renderer->renderering_data.vertex_buffer, 1);
+            vec_push(renderer->renderering_data.vertex_buffer, 1);
+            vec_push(renderer->renderering_data.vertex_buffer, 1);
         }
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 1);
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 3);
-        array_pushback(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 1);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 2);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 3);
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + 0);
         renderer->renderering_data.offset += 4;
 
         pos.x += c.advance >> 6;
     }
+    string_destroy(&text);
 }
 
 SAPPHIRE_API void sp_render_quad_v2(vec2s pos, vec2s size, SPTexture *tex, u32 color_hex) {
@@ -261,19 +250,21 @@ static void sp_render_cube_int(mat4s transform, SPTexture *tex, u32 color_hex) {
     for(u32 i = 0; i < 8; i++) {
         vec3s pos = glms_mat4_mulv3(transform, (vec3s){{CUBE_VERTEX_POS[i].x, CUBE_VERTEX_POS[i].y, CUBE_VERTEX_POS[i].z}}, CUBE_VERTEX_POS[i].w);
         //vec3s pos = glms_vec3(CUBE_VERTEX_POS[i]);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, pos.z);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, CUBE_UV_CORDS[i].x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, CUBE_UV_CORDS[i].y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, tex_index);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.x);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.y);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.z);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, color.w);
-        gaia_array_pushback(renderer->renderering_data.vertex_buffer, 0);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.x);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.y);
+        vec_push(renderer->renderering_data.vertex_buffer, pos.z);
+        vec_push(renderer->renderering_data.vertex_buffer, CUBE_UV_CORDS[i].x);
+        vec_push(renderer->renderering_data.vertex_buffer, CUBE_UV_CORDS[i].y);
+        vec_push(renderer->renderering_data.vertex_buffer, tex_index);
+        vec_push(renderer->renderering_data.vertex_buffer, color.x);
+        vec_push(renderer->renderering_data.vertex_buffer, color.y);
+        vec_push(renderer->renderering_data.vertex_buffer, color.z);
+        vec_push(renderer->renderering_data.vertex_buffer, color.w);
+        vec_push(renderer->renderering_data.vertex_buffer, 0);
     }
-    PUSH_CUBE_INDICIES();
+    for(u32 idx = 0; idx < 36; idx++) {
+        vec_push(renderer->renderering_data.index_buffer, renderer->renderering_data.offset + CUBE_INDICIES[idx]);
+    }
     renderer->renderering_data.offset += 8;
 }
 
@@ -291,15 +282,17 @@ SAPPHIRE_API void sp_render_cube_v3(vec3s pos, vec3s dims, SPTexture *tex, u32 c
 
 SAPPHIRE_API void sp_renderer_flush(void) {
     sp_shader_bind(renderer->shader);
-    if(renderer->camera_current)
+    if(renderer->camera_current) {
         sp_shader_uniform_view_proj(renderer->shader, sp_camera_viewproj_get(renderer->camera_current));
+    }
     sp_shader_uniform_mat4(renderer->shader, "m", glms_mat4_identity());
     sp_shader_uniform_textures2D(renderer->shader, "textures");
-    for(size_t i = 0; i < 32; i++)
+    for(size_t i = 0; i < 32; i++) {
         glBindTextureUnit(i, renderer->renderering_data.textures[i].handle);
+    }
 
-    sp_vbo_buffer(renderer->vbo, renderer->renderering_data.vertex_buffer, 0, array_length(renderer->renderering_data.vertex_buffer) * sizeof(f32));
-    sp_vbo_buffer(renderer->ibo, renderer->renderering_data.index_buffer, 0, array_length(renderer->renderering_data.index_buffer) * sizeof(u32));
+    sp_vbo_buffer(renderer->vbo, renderer->renderering_data.vertex_buffer, 0, vec_len(renderer->renderering_data.vertex_buffer) * sizeof(f32));
+    sp_vbo_buffer(renderer->ibo, renderer->renderering_data.index_buffer, 0, vec_len(renderer->renderering_data.index_buffer) * sizeof(u32));
 
     sp_vao_attr(renderer->vao, renderer->vbo, 0, 3, GL_FLOAT, 11 * sizeof(f32), 0 * sizeof(f32));
     sp_vao_attr(renderer->vao, renderer->vbo, 1, 2, GL_FLOAT, 11 * sizeof(f32), 3 * sizeof(f32));
@@ -310,19 +303,16 @@ SAPPHIRE_API void sp_renderer_flush(void) {
     sp_vao_bind(renderer->vao);
     sp_vbo_bind(renderer->ibo);
 
-    glDrawElements(GL_TRIANGLES, array_length(renderer->renderering_data.index_buffer), GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, vec_len(renderer->renderering_data.index_buffer), GL_UNSIGNED_INT, NULL);
     renderer->info.draw_calls++;
-    //sp_info("Drew with %llu indicies", array_length(renderer->renderering_data.index_buffer));
-    //sp_info("textures -> {\n\t%d\n\t%d\n\t%d\n}", renderer->renderering_data.textures[0].handle, renderer->renderering_data.textures[1].handle, renderer->renderering_data.textures[2].handle);
+    sp_info("Drew with %llu indicies", vec_len(renderer->renderering_data.index_buffer));
     sp_renderer_data_clear();
 }
 
 SAPPHIRE_API void sp_batch_end(void) {
-    //sp_render_prep();
     sp_renderer_flush();
-    if(!renderer)
+    if(renderer)
         renderer->info = (RendererInfo){0};
-    //sp_renderer_data_clear();
 }
 
 SAPPHIRE_API void sp_renderer_clear_color_set(f32 r, f32 g, f32 b, f32 a) {
@@ -353,7 +343,8 @@ void sp_render_prep(void) {
         }
         glClearColor(
             renderer->clear_color.x, renderer->clear_color.y,
-            renderer->clear_color.z, renderer->clear_color.w);
+            renderer->clear_color.z, renderer->clear_color.w
+        );
 
         //sp_camera_update(renderer->camera_current);
     }
@@ -362,17 +353,17 @@ void sp_render_prep(void) {
 void sp_renderer_data_clear(void) {
     renderer->renderering_data.offset = 0;
     renderer->renderering_data.texture_count = 0;
-    array_length(renderer->renderering_data.vertex_buffer) = 0;
-    array_length(renderer->renderering_data.index_buffer) = 0;
-    memset(renderer->renderering_data.vertex_buffer, 0, array_capacity(renderer->renderering_data.vertex_buffer) * sizeof(f32));
-    memset(renderer->renderering_data.index_buffer, 0, array_capacity(renderer->renderering_data.index_buffer) * sizeof(u32));
+    vec_len(renderer->renderering_data.vertex_buffer) = 0;
+    vec_len(renderer->renderering_data.index_buffer) = 0;
+    memset(renderer->renderering_data.vertex_buffer, 0, vec_cap(renderer->renderering_data.vertex_buffer) * sizeof(f32));
+    memset(renderer->renderering_data.index_buffer, 0, vec_cap(renderer->renderering_data.index_buffer) * sizeof(u32));
     memset(renderer->renderering_data.textures, 0, 32 * sizeof(SPTexture));
 }
 
 f32 sp_item_check_texture(SPTexture *tex) {
     if(renderer->renderering_data.texture_count >= 31
-    || array_length(renderer->renderering_data.vertex_buffer) >= RENDERER_MAX_VERTECIES
-    || array_length(renderer->renderering_data.index_buffer) >= RENDERER_MAX_INDICIES
+    || vec_len(renderer->renderering_data.vertex_buffer) >= RENDERER_MAX_VERTECIES
+    || vec_len(renderer->renderering_data.index_buffer) >= RENDERER_MAX_INDICIES
     ) {
         sp_renderer_flush();
     }
@@ -400,14 +391,14 @@ SAPPHIRE_API void sp_font_push(SPFont *font) {
     if(!renderer)
         return;
 
-    gaia_array_pushback(renderer->fonts, font);
+    vec_push(renderer->fonts, font);
 }
 
 SAPPHIRE_API void sp_font_pop(void) {
     if(!renderer)
         return;
 
-    gaia_array_pop(renderer->fonts);
+    vec_pop(renderer->fonts);
 }
 
 #ifdef DSP_DEBUG

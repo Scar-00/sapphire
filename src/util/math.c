@@ -126,7 +126,7 @@ SAPPHIRE_API bool sp_cast_ray(SPCamera *camera, SPPos ray, SPIntersectionFunc fu
         sp_warn("tmax -> | x: %.3f | y: %.3f | z: %.3f |", tmax.x, tmax.y, tmax.z);
         iter++;
         if(iter > 100)
-            sp_panic(SP_ERROR_SP, "Test");
+            sp_panic(SP_ERROR_SP, "Test", "");
     }
     return false;
 }

@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_FONT_H_
 #define _SAPPHIRE_FONT_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 #include <stddef.h>
 
 typedef struct SPFont SPFont;

@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_CAMERA_H_
 #define _SAPPHIRE_CAMERA_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 
 typedef struct SPCamera SPCamera;
 

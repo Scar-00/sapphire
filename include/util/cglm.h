@@ -2,7 +2,7 @@
 #ifndef _SAPPHIRE_CGLM_H_
 #define _SAPPHIRE_CGLM_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 
 SAPPHIRE_API vec2s sp_mouse_pos(void);
 

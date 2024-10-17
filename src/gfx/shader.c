@@ -1,4 +1,3 @@
-#include <core.h>
 #include "../internal.h"
 
 static void _log(
@@ -13,9 +12,9 @@ static void _log(
     sp_panic(SP_ERROR_SP, "%s shader:\n%s", adverb, logtext);
 }
 
-static GLuint _compile(StringStream src, GLenum type) {
+static GLuint _compile(StringView src, GLenum type) {
     GLuint handle = glCreateShader(type);
-    glShaderSource(handle, 1, (const GLchar *const *)&src.c_str, (const int *)&src.length);
+    glShaderSource(handle, 1, (const GLchar *const *)&src.data, (const int *)&src.len);
     glCompileShader(handle);
 
     GLint compiled = 0;
@@ -24,7 +23,6 @@ static GLuint _compile(StringStream src, GLenum type) {
     if(compiled == 0) {
         _log(handle, "compiling", glGetShaderInfoLog, glGetShaderiv);
     }
-    stringstream_destroy(&src);
     return handle;
 }
 
@@ -58,24 +56,24 @@ SPShader sp_shader_create_src(const char *vertex, const char *fragment) {
 }*/
 
 SPShader sp_shader_create_int(const char *vs_path, const char *fs_path, size_t layout_size, struct SPShaderField layout[]) {
-    GaiaFile vertex_shader = file_read(vs_path, "rb");
-    GaiaFile fragment_shader = file_read(fs_path, "rb");
-    SPShader self = sp_shader_create_src_int(vertex_shader.data.c_str, fragment_shader.data.c_str, layout_size, layout);
-    file_close(&vertex_shader);
-    file_close(&fragment_shader);
+    String vertex_shader = file_read_to_string(vs_path);
+    String fragment_shader = file_read_to_string(fs_path);
+    SPShader self = sp_shader_create_src_int(string_into_view(&vertex_shader), string_into_view(&fragment_shader), layout_size, layout);
+    string_destroy(&vertex_shader);
+    string_destroy(&fragment_shader);
     return self;
 }
 
-SPShader sp_shader_create_src_int(const char *vs_src, const char *fs_src, size_t layout_size, struct SPShaderField layout[]) {
+SPShader sp_shader_create_src_int(StringView vs_src, StringView fs_src, size_t layout_size, struct SPShaderField layout[]) {
     SPShader self = {
-        .vs_handle = _compile(stringstream_init(vs_src), GL_VERTEX_SHADER),
-        .fs_handle = _compile(stringstream_init(fs_src), GL_FRAGMENT_SHADER),
+        .vs_handle = _compile(vs_src, GL_VERTEX_SHADER),
+        .fs_handle = _compile(fs_src, GL_FRAGMENT_SHADER),
         .handle = glCreateProgram(),
-        .fields = array_create(struct SPShaderField, layout_size),
+        .fields = vec_with_size(struct SPShaderField, layout_size),
     };
 
     //copy layout into fields
-    array_loop(self.fields, i) {
+    vec_iter(self.fields, i) {
         self.fields[i] = layout[i];
     }
 
@@ -125,12 +123,12 @@ void sp_shader_uniform_textures2D(SPShader self, char *name) {
     for(size_t i = 0; i < 32; i++) {
         samplers[i] = i;
     }
-    glUniform1iv(glGetUniformLocation(self.handle, name), 32, samplers);
+    glUniform1iv(glGetUniformLocation(self.handle, name), 2, samplers);
 }
 
 static size_t sp_get_stride(SPShader *shader) {
     size_t stride = 0;
-    array_loop(shader->fields, i) {
+    vec_iter(shader->fields, i) {
         switch (shader->fields[i].type) {
             case SP_SHADER_TYPE_FLOAT4: {
                 stride += 4;
@@ -161,7 +159,7 @@ static size_t sp_get_stride(SPShader *shader) {
 void sp_attributes_bind(SPVAO vao, SPVBO vbo, SPShader shader) {
     size_t stride = sp_get_stride(&shader);
     size_t offset = 0;
-    array_loop(shader.fields, i) {
+    vec_iter(shader.fields, i) {
         switch (shader.fields[i].type) {
             case SP_SHADER_TYPE_FLOAT4: {
                 sp_vao_attr(vao, vbo, i, 4, GL_FLOAT, stride * sizeof(f32), offset * sizeof(f32));

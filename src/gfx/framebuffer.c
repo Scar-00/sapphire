@@ -2,12 +2,12 @@
 
 SAPPHIRE_API SPFrameBufferSpec sp_framebuffer_spec_init_expl(u32 count, SPFrameBufferSpecType *types) {
     SPFrameBufferSpec self = {
-        .type = array_create(SPFrameBufferSpecType, count),
+        .type = vec_with_size(SPFrameBufferSpecType, count),
         .width = 0,
         .height = 0,
     };
 
-    array_loop(self.type, i) {
+    vec_iter(self.type, i) {
         self.type[i] = types[i];
     }
 
@@ -19,7 +19,7 @@ SAPPHIRE_API SPFrameBuffer sp_framebuffer_init(SPFrameBufferSpec spec) {
         .spec = spec,
         .samples = 1,
         .swap_chain = true,
-        .color_attachments = array_create(u32, array_length(spec.type)),
+        .color_attachments = vec_with_size(u32, vec_len(spec.type)),
         .depth_buffer = 0,
         .renderer_id = 0,
     };

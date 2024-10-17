@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_RENDERER_H_
 #define _SAPPHIRE_RENDERER_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 #include "gfx/camera.h"
 #include "texture.h"
 
@@ -26,7 +26,7 @@ SAPPHIRE_API void sp_render_cube(f32 x, f32 y, f32 z, f32 width, f32 height, f32
 typedef struct RendererInfo{
     u32 draw_calls;
 }RendererInfo;
-#ifdef DSP_DEBUG
+#ifdef SP_DEBUG
 SAPPHIRE_API RendererInfo sp_renderer_info_get(void);
 #endif
 

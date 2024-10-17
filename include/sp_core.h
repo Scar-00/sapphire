@@ -1,35 +1,45 @@
 #ifndef _SAPPHIRE_CORE_H_
 #define _SAPPHIRE_CORE_H_
 
-#if defined(DLL_BUILD) && defined(_WIN32)
+#if defined (_WIN32)
+    #define SP_OS_WIN
+#else
+    #define SP_OS_UNIX
+#endif
+
+//#define SP_OS_OSX
+
+#if defined(DLL_BUILD) && defined(SP_OS_WIN)
     #define SAPPHIRE_API __declspec(dllexport)
     #define SAPPHIRE_PATH_SEPERATOR \\
-#elif defined(DLL_USE) && defined(_WIN32)
+#elif defined(DLL_USE) && defined(SP_OS_WIN)
     #define SAPPHIRE_API __declspec(dllimport)
 #else
     #define SAPPHIRE_PATH_SEPERATOR /
     #define SAPPHIRE_API
 #endif
 
+
 #define BIT(x) (1 << x)
+
+typedef double              f64;
+typedef float               f32;
+typedef long long int       s64;
+typedef int                 s32;
+typedef short int           s16;
+typedef signed char         s8;
+
+//unsigned types
+typedef unsigned long long  u64;
+typedef unsigned int        u32;
+typedef unsigned short      u16;
+typedef unsigned char       u8;
 
 #include <stdint.h>
 #include <inttypes.h>
+#include <stddef.h>
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-
-typedef float f32;
-typedef double f64;
-
-typedef u64 SPID;
+typedef uint64_t SPID;
 
 #define SP_ARRSIZE(a) ((s32)sizeof(a) / sizeof(*a))
 

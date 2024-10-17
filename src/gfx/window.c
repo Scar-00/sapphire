@@ -1,7 +1,5 @@
 #include "../internal.h"
 #include <gfx/window.h>
-#include "Gaia/names.h"
-#include "core.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -16,7 +14,7 @@ static void _error_callback(int code, const char *description) {
 static void _size_callback(GLFWwindow *handle, int width, int height) {
     glViewport(0, 0, width, height);
     window->size = (vec2s){{width, height}};
-    array_pushback(window->events, SP_EVENT_WINDOW_RESIZED);
+    vec_push(window->events, SP_EVENT_WINDOW_RESIZED);
     if(window->fb_forward != NULL) {window->fb_forward(handle, width, height);}
 }
 
@@ -28,7 +26,7 @@ static void _cursor_callback(GLFWwindow *handle, double xp, double yp) {
     window->mouse.delta.y = clamp(window->mouse.delta.y, -100.0f, 100.0f);
 
     window->mouse.pos = pos;
-    array_pushback(window->events, SP_EVENT_CURSOR_MOVED);
+    vec_push(window->events, SP_EVENT_CURSOR_MOVED);
     if(window->cursor_forward != NULL) {window->cursor_forward(handle, xp, yp);}
 }
 
@@ -46,7 +44,7 @@ static void _key_callback(GLFWwindow *handle, int key, int scancode, int action,
         break;
     default: break;
     }
-    array_pushback(window->events, SP_EVENT_KEY_PRESSED);
+    vec_push(window->events, SP_EVENT_KEY_PRESSED);
     if(window->key_forward != NULL) {window->key_forward(handle, key, scancode, action, mods); }
 }
 
@@ -64,7 +62,7 @@ static void _mouse_callback(GLFWwindow *handle, int button, int action, int mods
         break;
     default: break;
     }
-    array_pushback(window->events, SP_EVENT_BUTTON_PRESSED);
+    vec_push(window->events, SP_EVENT_BUTTON_PRESSED);
     if(window->mouse_forward != NULL) {window->mouse_forward(handle, button, action, mods);}
 }
 
@@ -92,10 +90,10 @@ static void _init() {
 }
 
 static void _destroy() {
-    gaia_array_loop(window->fonts, i) {
+    vec_iter(window->fonts, i) {
         sp_texture_destroy(window->fonts[i].texture);
     }
-    gaia_array_destroy(window->fonts);
+    vec_destroy(window->fonts);
     window->destroy();
 }
 
@@ -118,26 +116,21 @@ static void _update() {
 static void _render() {
     window->frames++;
     window->render();
-    array_length(window->events) = 0;
+    vec_len(window->events) = 0;
 }
 
 SAPPHIRE_API SPWindow *sp_window_create(WinFn init, WinFn destroy, WinTickFn tick, WinFn update, WinFn render, const char *name, u32 width, u32 height, SPWindowFlag flags) {
-    // debugging
-#ifdef SP_DEBUG
-    arena_init();
-#endif
-
     //setup glfw & glad
     glfwSetErrorCallback(_error_callback);
     if (!glfwInit()){
         fprintf(stderr, "error initializing GLFW\n");
         exit(1);
     }
-    glfwWindowHint(GLFW_RESIZABLE, flags & SP_WINDOW_RESIZE ? GL_TRUE : GL_FALSE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    //glfwWindowHint(GLFW_RESIZABLE, FLAG_CHECK(flags, SP_WINDOW_RESIZE) ? GL_TRUE : GL_FALSE);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     //default behavior for every window
     window = calloc(1, sizeof(*window));
@@ -154,13 +147,13 @@ SAPPHIRE_API SPWindow *sp_window_create(WinFn init, WinFn destroy, WinTickFn tic
         .frame_last = sp_time_now(),
         .second_last = sp_time_now(),
         .tps_desired = 60,
-        .events = array_create(SPEvent, 20),
+        .events = vec_with_size(SPEvent, 20),
         .fb_forward = NULL,
         .cursor_forward = NULL,
         .key_forward = NULL,
         .mouse_forward = NULL,
         .scroll_forward = NULL,
-        .fonts = gaia_array_create(struct SPFont, 2),
+        .fonts = vec_with_size(struct SPFont, 2),
     };
 
     window->handle = glfwCreateWindow(window->size.x, window->size.y, window->name, NULL, NULL);
@@ -181,7 +174,7 @@ SAPPHIRE_API SPWindow *sp_window_create(WinFn init, WinFn destroy, WinTickFn tic
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         glfwTerminate();
-        sp_panic(SP_ERROR_GLAD, "could not init");
+        sp_panic(SP_ERROR_GLAD, "could not init", "");
     }
     glfwSwapInterval(1);
 
@@ -190,7 +183,6 @@ SAPPHIRE_API SPWindow *sp_window_create(WinFn init, WinFn destroy, WinTickFn tic
 
 SAPPHIRE_API void sp_window_loop(void) {
     _init();
-
     while (!glfwWindowShouldClose(window->handle)) {
         const u64 now = sp_time_now();
 
@@ -320,13 +312,13 @@ SAPPHIRE_API u64 sp_window_frame_rate(void) {
 }
 
 static void remove_event(size_t index) {
-    for(size_t i = index; i < array_length(window->events) - 1; i++) {
+    for(size_t i = index; i < vec_len(window->events) - 1; i++) {
         window->events[i] = window->events[i + 1];
     }
 }
 
 bool sp_window_event(SPEvent event) {
-    size_t event_count = array_length(window->events);
+    size_t event_count = vec_len(window->events);
     if(event_count == 0)
         return 0;
 
@@ -339,7 +331,7 @@ bool sp_window_event(SPEvent event) {
 }
 
 bool sp_window_handle_event(SPEvent e) {
-    size_t event_count = array_length(window->events);
+    size_t event_count = vec_len(window->events);
     if(event_count == 0)
         return 0;
 
@@ -356,11 +348,11 @@ void sp_window_add_font(SPFont font) {
     if(!window)
         return;
 
-    gaia_array_pushback(window->fonts, font);
+    vec_push(window->fonts, font);
 }
 
 SPFont *sp_window_font_back(void) {
     if(!window)
         return NULL;
-    return &window->fonts[gaia_array_length(window->fonts) - 1];
+    return &window->fonts[vec_len(window->fonts) - 1];
 }

@@ -1,7 +1,7 @@
 #ifndef _SAPPHIRE_WINDOW_H_
 #define _SAPPHIRE_WINDOW_H_
 
-#include "../core.h"
+#include "../sp_core.h"
 
 typedef struct SPWindow SPWindow;
 
